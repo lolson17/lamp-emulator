@@ -1,66 +1,196 @@
 # AAC Assist - Augmentative and Alternative Communication Application
 
-A web-based Assisted Speech (AAC) application built on the LAMP stack that allows users with speech impairments to build sentences by tapping symbols/text on a grid, which are then vocalized using the browser's Web Speech API.
+A web-based Assisted Speech (AAC) application that allows users with speech impairments to build sentences by tapping symbols/text on a grid, which are then vocalized using the browser's Web Speech API.
 
-## Features
+## Architecture
 
-- **Sentence Builder**: Tap phrases to build sentences visually
-- **Text-to-Speech**: Vocalize sentences using browser's Speech Synthesis API
-- **Categorized Phrases**: Organized into intuitive categories (Greetings, Needs, Feelings, etc.)
-- **Quick Access**: Frequently used phrases are tracked and displayed for fast access
-- **Search**: Filter phrases by text label
-- **Accessibility First**:
-  - WCAG 2.1 AA compliant
-  - High contrast mode
-  - Large touch targets (minimum 48x48px)
-  - Full keyboard navigation
-  - ARIA labels and live regions for screen readers
-- **Customizable**: Adjustable voice, speech rate, and pitch
+This application uses a **split deployment** architecture:
 
-## Requirements
+- **Frontend** (`frontend/`) → Hosted on **GitHub Pages** (static HTML/CSS/JS)
+- **Backend** (`backend/`) → Hosted on **Railway** (PHP + MySQL)
 
-- **Web Server**: Apache 2.4+ with mod_rewrite enabled
-- **PHP**: 7.4+ (8.0+ recommended)
-- **MySQL**: 5.7+ or MariaDB 10.3+
-- **Browser**: Modern browser with Web Speech API support (Chrome, Edge, Safari, Firefox)
+```
+┌─────────────────────┐         ┌─────────────────────┐
+│   GitHub Pages      │   API   │      Railway        │
+│   ─────────────     │ ──────► │   ─────────────     │
+│   index.html        │         │   api.php           │
+│   (Static Frontend) │         │   MySQL Database    │
+└─────────────────────┘         └─────────────────────┘
+```
 
-## Installation
+---
 
-### 1. Clone or Download
+## Quick Start Deployment
+
+### Prerequisites
+
+- GitHub account
+- Railway account (https://railway.app) - free tier available
+- Git installed locally
+
+---
+
+## Part 1: Deploy Backend to Railway
+
+### Step 1: Create Railway Account & Project
+
+1. Go to [railway.app](https://railway.app) and sign up/login (GitHub OAuth recommended)
+2. Click **"New Project"** → **"Deploy from GitHub repo"**
+3. Select this repository or connect your fork
+4. Railway will detect the `backend/` folder
+
+### Step 2: Configure Railway Service
+
+1. In your Railway project dashboard, click on your service
+2. Go to **Settings** → **General**
+3. Set **Root Directory** to: `backend`
+4. Set **Start Command** to: `php -S 0.0.0.0:$PORT`
+
+### Step 3: Add MySQL Database
+
+1. In your Railway project, click **"+ New"** → **"Database"** → **"MySQL"**
+2. Railway automatically creates and links these environment variables:
+   - `MYSQL_HOST`
+   - `MYSQL_PORT`
+   - `MYSQL_DATABASE`
+   - `MYSQL_USER`
+   - `MYSQL_PASSWORD`
+
+### Step 4: Run Database Migration
+
+**Option A: Using Railway CLI (Recommended)**
 
 ```bash
-git clone <repository-url> /var/www/html/aac-assist
-cd /var/www/html/aac-assist
+# Install Railway CLI
+npm install -g @railway/cli
+
+# Login to Railway
+railway login
+
+# Link to your project
+railway link
+
+# Run migration
+railway run php migrate.php
 ```
 
-### 2. Create the Database
+**Option B: Manual via Railway Shell**
 
-Connect to MySQL and run the schema file:
+1. In Railway dashboard, click on your PHP service
+2. Go to **"Deployments"** tab
+3. Click on the active deployment → **"View Logs"** → **"Shell"**
+4. Run: `php migrate.php`
+
+### Step 5: Get Your Backend URL
+
+1. In Railway, go to your PHP service **Settings** → **Networking**
+2. Click **"Generate Domain"** to get a public URL
+3. Your API URL will be: `https://YOUR-APP.up.railway.app/api.php`
+
+**Save this URL - you'll need it for the frontend!**
+
+---
+
+## Part 2: Deploy Frontend to GitHub Pages
+
+### Step 1: Update API URL in Frontend
+
+Edit `frontend/index.html` and update the configuration:
+
+```javascript
+window.AAC_CONFIG = {
+    // Replace with your Railway backend URL from Step 5 above
+    API_URL: 'https://YOUR-RAILWAY-APP.up.railway.app/api.php',
+    USER_ID: 1,
+    DEBOUNCE_DELAY: 300,
+    STORAGE_KEY: 'aac_assist_settings'
+};
+```
+
+### Step 2: Enable GitHub Pages
+
+1. Go to your GitHub repository
+2. Navigate to **Settings** → **Pages**
+3. Under **Source**, select:
+   - Branch: `main` (or your default branch)
+   - Folder: `/frontend`
+4. Click **Save**
+
+### Step 3: Access Your App
+
+After a few minutes, your app will be live at:
+```
+https://YOUR-USERNAME.github.io/YOUR-REPO-NAME/
+```
+
+---
+
+## Project Structure
+
+```
+aac-assist/
+├── frontend/                    # GitHub Pages (Static)
+│   └── index.html               # Main application interface
+│
+├── backend/                     # Railway (PHP + MySQL)
+│   ├── api.php                  # REST API endpoints
+│   ├── migrate.php              # Database migration script
+│   ├── railway.json             # Railway configuration
+│   ├── nixpacks.toml            # Nixpacks build config
+│   ├── config/
+│   │   └── database.php         # Database configuration
+│   └── database/
+│       └── schema.sql           # Full SQL schema (reference)
+│
+└── README.md                    # This file
+```
+
+---
+
+## API Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `?action=categories` | Get all categories |
+| GET | `?action=phrases` | Get all phrases |
+| GET | `?action=phrases&category=X` | Get phrases for category X |
+| GET | `?action=search&q=term` | Search phrases by text |
+| GET | `?action=quick_access&user=X` | Get user's quick access phrases |
+| POST | `?action=track_usage` | Track phrase usage |
+
+---
+
+## Railway CLI Quick Reference
 
 ```bash
-mysql -u root -p < database/schema.sql
+# Install CLI
+npm install -g @railway/cli
+
+# Login
+railway login
+
+# Link project (run in repo root)
+railway link
+
+# Run commands in Railway environment
+railway run php migrate.php
+railway run php migrate.php --fresh    # Reset database
+
+# View logs
+railway logs
+
+# Open project dashboard
+railway open
+
+# Check status
+railway status
 ```
 
-Or via MySQL client:
+---
 
-```sql
-SOURCE /path/to/database/schema.sql;
-```
+## Environment Variables
 
-This will:
-- Create the `aac_assist` database
-- Create all required tables (users, categories, phrases, quick_access)
-- Populate seed data with common AAC phrases
-
-### 3. Configure Database Connection
-
-Copy the configuration template and edit with your credentials:
-
-```bash
-cp config/database.php config/database.local.php
-```
-
-Edit `config/database.local.php`:
+Railway automatically provides MySQL variables. For local development, create `backend/config/database.local.php`:
 
 ```php
 <?php
@@ -68,7 +198,7 @@ return [
     'host'     => 'localhost',
     'port'     => '3306',
     'database' => 'aac_assist',
-    'username' => 'your_username',
+    'username' => 'root',
     'password' => 'your_password',
     'charset'  => 'utf8mb4',
     'options'  => [
@@ -79,135 +209,94 @@ return [
 ];
 ```
 
-Alternatively, use environment variables:
+---
+
+## Local Development
+
+### Backend
 
 ```bash
-export DB_HOST=localhost
-export DB_PORT=3306
-export DB_NAME=aac_assist
-export DB_USER=your_username
-export DB_PASS=your_password
+cd backend
+
+# Start PHP built-in server
+php -S localhost:8080
+
+# Run migrations
+php migrate.php
 ```
 
-### 4. Set File Permissions
+### Frontend
 
 ```bash
-chmod 644 config/*.php
-chmod 755 . config database
+cd frontend
+
+# Serve with any static server, e.g., Python
+python -m http.server 3000
+
+# Or use VS Code Live Server extension
 ```
 
-### 5. Configure Apache Virtual Host (Optional)
+Update `frontend/index.html` API_URL to `http://localhost:8080/api.php` for local testing.
 
-Create a virtual host for the application:
+---
 
-```apache
-<VirtualHost *:80>
-    ServerName aac-assist.local
-    DocumentRoot /var/www/html/aac-assist
+## Features
 
-    <Directory /var/www/html/aac-assist>
-        Options -Indexes +FollowSymLinks
-        AllowOverride All
-        Require all granted
-    </Directory>
+- **Sentence Builder**: Tap phrases to build sentences
+- **Text-to-Speech**: Browser's Speech Synthesis API
+- **Categorized Phrases**: 10 categories, 100+ phrases
+- **Quick Access**: Frequently used phrases tracking
+- **Search**: Real-time phrase filtering
+- **Accessibility**:
+  - WCAG 2.1 AA compliant
+  - High contrast mode
+  - 48px+ touch targets
+  - Full keyboard navigation
+  - ARIA labels and live regions
 
-    ErrorLog ${APACHE_LOG_DIR}/aac-assist-error.log
-    CustomLog ${APACHE_LOG_DIR}/aac-assist-access.log combined
-</VirtualHost>
-```
-
-### 6. Test the Installation
-
-1. Start your Apache and MySQL services
-2. Open your browser and navigate to: `http://localhost/aac-assist/` or your configured domain
-3. The application should load with categories and phrases
-
-## Project Structure
-
-```
-aac-assist/
-├── index.php              # Main frontend interface
-├── api.php                # RESTful API backend
-├── config/
-│   ├── database.php       # Database configuration template
-│   └── database.local.php # Local database config (create this)
-├── database/
-│   └── schema.sql         # MySQL database schema and seed data
-├── icons/                 # Icon assets (add your own)
-│   └── phrases/
-└── README.md
-```
-
-## API Endpoints
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `api.php?action=categories` | Get all categories |
-| GET | `api.php?action=phrases` | Get all phrases |
-| GET | `api.php?action=phrases&category=X` | Get phrases for category X |
-| GET | `api.php?action=search&q=term` | Search phrases by text label |
-| GET | `api.php?action=quick_access&user=X` | Get quick access phrases for user X |
-| GET | `api.php?action=categories_with_phrases` | Get categories with nested phrases |
-| POST | `api.php?action=track_usage` | Track phrase usage (body: user_id, phrase_id) |
-
-## Usage
-
-1. **Build a Sentence**: Tap/click on phrase buttons to add words to the sentence bar
-2. **Remove Words**: Click on words in the sentence bar to remove them, or use the Back button
-3. **Speak**: Press the Speak button to vocalize the sentence
-4. **Search**: Use the search bar to quickly find specific phrases
-5. **Settings**: Click the gear icon to adjust voice, speed, pitch, and contrast settings
-
-## Accessibility Features
-
-- **Keyboard Navigation**: Full support for Tab, Enter, Space, and Escape keys
-- **Screen Reader Support**: ARIA labels, roles, and live regions for announcements
-- **High Contrast Mode**: Toggle in settings for visually impaired users
-- **Large Touch Targets**: All interactive elements are at least 48x48px
-- **Focus Indicators**: Visible focus rings on all interactive elements
-- **Skip Links**: Skip to main content for keyboard users
-
-## Adding Custom Phrases
-
-Insert new phrases via SQL:
-
-```sql
-INSERT INTO phrases (category_id, text_label, speech_output, sort_order)
-VALUES (1, 'Custom Phrase', 'What the system will say', 100);
-```
-
-Or create an admin interface to manage phrases through the API.
-
-## Browser Support
-
-| Browser | Minimum Version | Notes |
-|---------|-----------------|-------|
-| Chrome | 33+ | Full support |
-| Edge | 14+ | Full support |
-| Safari | 7+ | Full support |
-| Firefox | 49+ | Full support |
+---
 
 ## Troubleshooting
 
-### Database Connection Error
-- Verify MySQL is running: `sudo systemctl status mysql`
-- Check credentials in `config/database.local.php`
-- Ensure the database exists: `mysql -u root -p -e "SHOW DATABASES;"`
+### "Failed to load application data"
 
-### No Speech Output
-- Ensure browser supports Web Speech API
-- Check browser permissions for speech synthesis
-- Try a different voice in settings
+1. Check browser console for errors (F12)
+2. Verify API URL in frontend config is correct
+3. Test API directly: `https://YOUR-APP.up.railway.app/api.php?action=categories`
+4. Check Railway logs for PHP errors
 
-### Phrases Not Loading
-- Check browser console for JavaScript errors
-- Verify API is working: `curl http://localhost/aac-assist/api.php?action=categories`
-- Check PHP error logs
+### Database Connection Errors
+
+1. Ensure MySQL addon is added in Railway
+2. Check that environment variables are linked
+3. Run `railway run php migrate.php` to initialize
+
+### CORS Errors
+
+The API includes CORS headers. If you still see errors:
+1. Check the API is responding (not erroring before headers)
+2. Ensure you're using HTTPS for both frontend and backend
+
+### Speech Not Working
+
+1. Ensure browser supports Web Speech API (Chrome, Edge, Safari, Firefox)
+2. Check browser permissions
+3. Try different voice in settings panel
+
+---
+
+## Cost Estimates
+
+- **GitHub Pages**: Free
+- **Railway Free Tier**:
+  - $5 credit/month
+  - Sufficient for light usage
+  - Database included
+
+For production use, Railway Pro starts at $20/month with more resources.
+
+---
 
 ## License
 
-This project is provided for educational and assistive technology purposes.
-
-## Contributing
-
-Contributions are welcome! Please ensure any changes maintain WCAG 2.1 AA accessibility compliance.
+MIT License - See LICENSE file for details.

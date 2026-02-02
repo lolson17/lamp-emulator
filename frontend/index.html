@@ -827,6 +827,24 @@
         </div>
     </aside>
 
+    <!-- Configuration Script - Edit API_URL to point to your Railway backend -->
+    <script>
+        /**
+         * =================================================================
+         * CONFIGURATION - UPDATE THIS URL AFTER DEPLOYING BACKEND
+         * =================================================================
+         * Replace with your Railway backend URL, e.g.:
+         * https://your-app-name.up.railway.app/api.php
+         */
+        window.AAC_CONFIG = {
+            // IMPORTANT: Update this URL after deploying your backend to Railway
+            API_URL: 'https://YOUR-RAILWAY-APP.up.railway.app/api.php',
+            USER_ID: 1,
+            DEBOUNCE_DELAY: 300,
+            STORAGE_KEY: 'aac_assist_settings'
+        };
+    </script>
+
     <script>
         /**
          * AAC Assist - Main Application Script
@@ -837,11 +855,11 @@
             'use strict';
 
             // =================================================================
-            // Configuration
+            // Configuration (uses global config or defaults)
             // =================================================================
-            const CONFIG = {
+            const CONFIG = window.AAC_CONFIG || {
                 API_URL: 'api.php',
-                USER_ID: 1, // Demo user
+                USER_ID: 1,
                 DEBOUNCE_DELAY: 300,
                 STORAGE_KEY: 'aac_assist_settings'
             };
@@ -900,10 +918,8 @@
                         return;
                     }
 
-                    // Load voices
                     this.loadVoices();
 
-                    // Voices may load asynchronously
                     if (this.synth.onvoiceschanged !== undefined) {
                         this.synth.onvoiceschanged = () => this.loadVoices();
                     }
@@ -928,7 +944,6 @@
                         select.appendChild(option);
                     });
 
-                    // Restore saved voice
                     if (state.settings.voice) {
                         select.value = state.settings.voice;
                     }
@@ -937,21 +952,16 @@
                 speak(text) {
                     if (!this.synth || !text.trim()) return;
 
-                    // Cancel any ongoing speech
                     this.synth.cancel();
 
                     const utterance = new SpeechSynthesisUtterance(text);
-
-                    // Apply settings
                     utterance.rate = state.settings.rate;
                     utterance.pitch = state.settings.pitch;
 
-                    // Set voice if selected
                     if (state.settings.voice && this.voices[state.settings.voice]) {
                         utterance.voice = this.voices[state.settings.voice];
                     }
 
-                    // Event handlers
                     utterance.onstart = () => {
                         state.isSpeaking = true;
                         elements.btnSpeak.classList.add('speaking');
@@ -985,7 +995,7 @@
             // =================================================================
             const api = {
                 async fetch(endpoint, params = {}) {
-                    const url = new URL(CONFIG.API_URL, window.location.origin);
+                    const url = new URL(CONFIG.API_URL);
                     url.searchParams.append('action', endpoint);
 
                     Object.entries(params).forEach(([key, value]) => {
@@ -993,7 +1003,12 @@
                     });
 
                     try {
-                        const response = await fetch(url);
+                        const response = await fetch(url, {
+                            method: 'GET',
+                            headers: {
+                                'Accept': 'application/json'
+                            }
+                        });
                         if (!response.ok) {
                             throw new Error(`HTTP error! status: ${response.status}`);
                         }
@@ -1029,7 +1044,10 @@
                     try {
                         await fetch(CONFIG.API_URL + '?action=track_usage', {
                             method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json'
+                            },
                             body: JSON.stringify({
                                 user_id: CONFIG.USER_ID,
                                 phrase_id: phraseId
@@ -1071,7 +1089,6 @@
                         bar.appendChild(word);
                     });
 
-                    // Update control button states
                     const hasWords = state.sentence.length > 0;
                     elements.btnSpeak.disabled = !hasWords;
                     elements.btnBackspace.disabled = !hasWords;
@@ -1088,7 +1105,6 @@
                     this.updateSentenceBar();
                     this.announce(`Added ${phrase.text_label} to sentence`);
 
-                    // Track usage
                     api.trackUsage(phrase.id);
                 },
 
@@ -1124,7 +1140,6 @@
                     const nav = elements.categoryNav.querySelector('.nav-tabs');
                     nav.innerHTML = '';
 
-                    // Add "All" tab
                     const allTab = document.createElement('button');
                     allTab.type = 'button';
                     allTab.className = 'nav-tab active';
@@ -1136,7 +1151,6 @@
                     allTab.addEventListener('click', () => this.selectCategory(null));
                     nav.appendChild(allTab);
 
-                    // Add category tabs
                     state.categories.forEach(category => {
                         const tab = document.createElement('button');
                         tab.type = 'button';
@@ -1155,7 +1169,6 @@
                 selectCategory(category) {
                     state.currentCategory = category;
 
-                    // Update tab states
                     const tabs = elements.categoryNav.querySelectorAll('.nav-tab');
                     tabs.forEach(tab => {
                         const isSelected = category
@@ -1166,7 +1179,6 @@
                         tab.setAttribute('aria-selected', isSelected ? 'true' : 'false');
                     });
 
-                    // Render phrases
                     this.renderPhrases();
                     this.announce(category ? `Showing ${category.name} phrases` : 'Showing all categories');
                 },
@@ -1175,7 +1187,6 @@
                     const content = elements.phraseContent;
 
                     if (state.currentCategory) {
-                        // Show phrases for selected category
                         const phrases = state.phrases.filter(p =>
                             String(p.category_id) === String(state.currentCategory.id)
                         );
@@ -1191,7 +1202,6 @@
                             </section>
                         `;
                     } else {
-                        // Show all categories as folders
                         content.innerHTML = `
                             <div class="phrase-grid" role="grid" aria-label="Select a category">
                                 ${state.categories.map(cat => this.createCategoryButton(cat)).join('')}
@@ -1199,7 +1209,6 @@
                         `;
                     }
 
-                    // Attach event listeners
                     this.attachPhraseListeners();
                     this.attachCategoryListeners();
                 },
@@ -1272,7 +1281,6 @@
 
                     grid.innerHTML = phrases.map(phrase => this.createPhraseButton(phrase)).join('');
 
-                    // Attach listeners
                     grid.querySelectorAll('.phrase-btn').forEach(btn => {
                         btn.addEventListener('click', () => {
                             const phrase = {
@@ -1352,18 +1360,11 @@
                 },
 
                 apply() {
-                    // Apply voice
                     elements.voiceSelect.value = state.settings.voice;
-
-                    // Apply rate
                     elements.rateSlider.value = state.settings.rate;
                     elements.rateValue.textContent = state.settings.rate.toFixed(1);
-
-                    // Apply pitch
                     elements.pitchSlider.value = state.settings.pitch;
                     elements.pitchValue.textContent = state.settings.pitch.toFixed(1);
-
-                    // Apply high contrast
                     elements.highContrastToggle.checked = state.settings.highContrast;
                     document.body.classList.toggle('high-contrast', state.settings.highContrast);
                 }
@@ -1373,7 +1374,6 @@
             // Event Handlers
             // =================================================================
             function setupEventListeners() {
-                // Speak button
                 elements.btnSpeak.addEventListener('click', () => {
                     if (state.isSpeaking) {
                         speech.stop();
@@ -1382,17 +1382,14 @@
                     }
                 });
 
-                // Backspace button
                 elements.btnBackspace.addEventListener('click', () => {
                     ui.removeLastWord();
                 });
 
-                // Clear button
                 elements.btnClear.addEventListener('click', () => {
                     ui.clearSentence();
                 });
 
-                // Search input with debounce
                 let searchTimeout;
                 elements.searchInput.addEventListener('input', (e) => {
                     clearTimeout(searchTimeout);
@@ -1415,50 +1412,42 @@
                     }, CONFIG.DEBOUNCE_DELAY);
                 });
 
-                // Settings toggle
                 elements.settingsToggle.addEventListener('click', () => {
                     const isOpen = elements.settingsPanel.classList.toggle('open');
                     elements.settingsToggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
                     elements.settingsPanel.setAttribute('aria-hidden', isOpen ? 'false' : 'true');
                 });
 
-                // Voice selection
                 elements.voiceSelect.addEventListener('change', (e) => {
                     state.settings.voice = e.target.value;
                     settings.save();
                 });
 
-                // Rate slider
                 elements.rateSlider.addEventListener('input', (e) => {
                     state.settings.rate = parseFloat(e.target.value);
                     elements.rateValue.textContent = state.settings.rate.toFixed(1);
                     settings.save();
                 });
 
-                // Pitch slider
                 elements.pitchSlider.addEventListener('input', (e) => {
                     state.settings.pitch = parseFloat(e.target.value);
                     elements.pitchValue.textContent = state.settings.pitch.toFixed(1);
                     settings.save();
                 });
 
-                // High contrast toggle
                 elements.highContrastToggle.addEventListener('change', (e) => {
                     state.settings.highContrast = e.target.checked;
                     document.body.classList.toggle('high-contrast', e.target.checked);
                     settings.save();
                 });
 
-                // Keyboard navigation
                 document.addEventListener('keydown', (e) => {
-                    // Escape to close settings
                     if (e.key === 'Escape' && elements.settingsPanel.classList.contains('open')) {
                         elements.settingsPanel.classList.remove('open');
                         elements.settingsToggle.setAttribute('aria-expanded', 'false');
                         elements.settingsToggle.focus();
                     }
 
-                    // Space/Enter on speak button
                     if ((e.key === ' ' || e.key === 'Enter') && document.activeElement === elements.btnSpeak) {
                         e.preventDefault();
                         elements.btnSpeak.click();
@@ -1471,16 +1460,10 @@
             // =================================================================
             async function init() {
                 try {
-                    // Initialize speech synthesis
                     speech.init();
-
-                    // Load saved settings
                     settings.load();
-
-                    // Setup event listeners
                     setupEventListeners();
 
-                    // Load data from API
                     ui.showLoading(true);
 
                     const [categories, phrases, quickAccess] = await Promise.all([
@@ -1492,7 +1475,6 @@
                     state.categories = categories;
                     state.phrases = phrases;
 
-                    // Render UI
                     ui.renderCategories();
                     ui.renderPhrases();
                     ui.renderQuickAccess(quickAccess);
@@ -1503,11 +1485,10 @@
                 } catch (error) {
                     console.error('Initialization error:', error);
                     ui.showLoading(false);
-                    ui.showError('Failed to load application data. Please refresh the page.');
+                    ui.showError('Failed to load application data. Please check your API configuration and refresh the page.');
                 }
             }
 
-            // Start the application
             if (document.readyState === 'loading') {
                 document.addEventListener('DOMContentLoaded', init);
             } else {
