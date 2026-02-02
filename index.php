@@ -1,0 +1,1519 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <meta name="description" content="AAC Assist - Augmentative and Alternative Communication Application">
+    <meta name="theme-color" content="#1a365d">
+    <title>AAC Assist - Speech Communication Aid</title>
+
+    <style>
+        /* =================================================================
+           CSS CUSTOM PROPERTIES (Design Tokens)
+           ================================================================= */
+        :root {
+            /* Colors - High Contrast Accessible Palette */
+            --color-primary: #1a365d;
+            --color-primary-light: #2c5282;
+            --color-secondary: #2d3748;
+            --color-accent: #38a169;
+            --color-danger: #c53030;
+            --color-warning: #d69e2e;
+
+            /* Text Colors */
+            --color-text-primary: #1a202c;
+            --color-text-secondary: #4a5568;
+            --color-text-inverse: #ffffff;
+
+            /* Background Colors */
+            --color-bg-primary: #f7fafc;
+            --color-bg-secondary: #edf2f7;
+            --color-bg-card: #ffffff;
+
+            /* Spacing */
+            --space-xs: 0.25rem;
+            --space-sm: 0.5rem;
+            --space-md: 1rem;
+            --space-lg: 1.5rem;
+            --space-xl: 2rem;
+            --space-2xl: 3rem;
+
+            /* Touch Targets - Minimum 48x48px for accessibility */
+            --touch-target-min: 48px;
+            --button-min-size: 56px;
+
+            /* Border Radius */
+            --radius-sm: 4px;
+            --radius-md: 8px;
+            --radius-lg: 12px;
+            --radius-xl: 16px;
+
+            /* Shadows */
+            --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+
+            /* Transitions */
+            --transition-fast: 150ms ease;
+            --transition-normal: 250ms ease;
+
+            /* Font */
+            --font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            --font-size-sm: 0.875rem;
+            --font-size-base: 1rem;
+            --font-size-lg: 1.125rem;
+            --font-size-xl: 1.25rem;
+            --font-size-2xl: 1.5rem;
+
+            /* Grid */
+            --grid-gap: var(--space-md);
+        }
+
+        /* High Contrast Mode */
+        .high-contrast {
+            --color-primary: #000000;
+            --color-text-primary: #000000;
+            --color-bg-primary: #ffffff;
+            --color-bg-card: #ffffff;
+        }
+
+        .high-contrast .phrase-btn {
+            border: 3px solid #000000 !important;
+        }
+
+        /* Dark Mode */
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --color-text-primary: #f7fafc;
+                --color-text-secondary: #e2e8f0;
+                --color-bg-primary: #1a202c;
+                --color-bg-secondary: #2d3748;
+                --color-bg-card: #2d3748;
+            }
+        }
+
+        /* =================================================================
+           RESET & BASE STYLES
+           ================================================================= */
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html {
+            font-size: 16px;
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: var(--font-family);
+            font-size: var(--font-size-base);
+            line-height: 1.5;
+            color: var(--color-text-primary);
+            background-color: var(--color-bg-primary);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Focus Styles for Accessibility */
+        :focus {
+            outline: 3px solid var(--color-accent);
+            outline-offset: 2px;
+        }
+
+        :focus:not(:focus-visible) {
+            outline: none;
+        }
+
+        :focus-visible {
+            outline: 3px solid var(--color-accent);
+            outline-offset: 2px;
+        }
+
+        /* Skip Link for Screen Readers */
+        .skip-link {
+            position: absolute;
+            top: -100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--color-primary);
+            color: var(--color-text-inverse);
+            padding: var(--space-md) var(--space-lg);
+            border-radius: var(--radius-md);
+            z-index: 1000;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .skip-link:focus {
+            top: var(--space-md);
+        }
+
+        /* =================================================================
+           HEADER & SENTENCE BAR
+           ================================================================= */
+        .app-header {
+            background: var(--color-primary);
+            color: var(--color-text-inverse);
+            padding: var(--space-md) var(--space-lg);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .header-content {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .app-title {
+            font-size: var(--font-size-xl);
+            font-weight: 700;
+            margin-bottom: var(--space-sm);
+        }
+
+        /* Sentence Bar */
+        .sentence-bar {
+            background: var(--color-bg-card);
+            border-radius: var(--radius-lg);
+            padding: var(--space-md);
+            min-height: 80px;
+            display: flex;
+            align-items: center;
+            gap: var(--space-sm);
+            flex-wrap: wrap;
+            margin-bottom: var(--space-md);
+        }
+
+        .sentence-bar:empty::before {
+            content: 'Tap phrases below to build a sentence...';
+            color: var(--color-text-secondary);
+            font-style: italic;
+        }
+
+        .sentence-word {
+            background: var(--color-bg-secondary);
+            color: var(--color-text-primary);
+            padding: var(--space-sm) var(--space-md);
+            border-radius: var(--radius-md);
+            font-size: var(--font-size-lg);
+            font-weight: 500;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: var(--transition-fast);
+            min-height: var(--touch-target-min);
+            display: flex;
+            align-items: center;
+        }
+
+        .sentence-word:hover,
+        .sentence-word:focus {
+            border-color: var(--color-danger);
+            background: #fed7d7;
+        }
+
+        .sentence-word::after {
+            content: '\00d7';
+            margin-left: var(--space-sm);
+            opacity: 0.6;
+        }
+
+        /* Sentence Controls */
+        .sentence-controls {
+            display: flex;
+            gap: var(--space-sm);
+            flex-wrap: wrap;
+        }
+
+        .control-btn {
+            min-width: var(--button-min-size);
+            min-height: var(--button-min-size);
+            padding: var(--space-sm) var(--space-lg);
+            border: none;
+            border-radius: var(--radius-md);
+            font-size: var(--font-size-lg);
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--space-sm);
+            transition: var(--transition-fast);
+        }
+
+        .btn-speak {
+            background: var(--color-accent);
+            color: var(--color-text-inverse);
+        }
+
+        .btn-speak:hover,
+        .btn-speak:focus {
+            background: #2f855a;
+            transform: scale(1.02);
+        }
+
+        .btn-speak:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-speak.speaking {
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .btn-clear {
+            background: var(--color-danger);
+            color: var(--color-text-inverse);
+        }
+
+        .btn-clear:hover,
+        .btn-clear:focus {
+            background: #9b2c2c;
+        }
+
+        .btn-backspace {
+            background: var(--color-warning);
+            color: var(--color-text-primary);
+        }
+
+        .btn-backspace:hover,
+        .btn-backspace:focus {
+            background: #b7791f;
+        }
+
+        /* =================================================================
+           MAIN CONTENT AREA
+           ================================================================= */
+        .app-main {
+            flex: 1;
+            padding: var(--space-lg);
+            max-width: 1400px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        /* Search Bar */
+        .search-container {
+            margin-bottom: var(--space-lg);
+        }
+
+        .search-input {
+            width: 100%;
+            max-width: 400px;
+            padding: var(--space-md);
+            font-size: var(--font-size-lg);
+            border: 2px solid var(--color-secondary);
+            border-radius: var(--radius-md);
+            min-height: var(--touch-target-min);
+        }
+
+        .search-input:focus {
+            border-color: var(--color-accent);
+        }
+
+        /* Navigation Tabs */
+        .nav-tabs {
+            display: flex;
+            gap: var(--space-sm);
+            margin-bottom: var(--space-lg);
+            flex-wrap: wrap;
+            border-bottom: 2px solid var(--color-bg-secondary);
+            padding-bottom: var(--space-md);
+        }
+
+        .nav-tab {
+            min-height: var(--touch-target-min);
+            padding: var(--space-sm) var(--space-lg);
+            background: var(--color-bg-card);
+            border: 2px solid var(--color-bg-secondary);
+            border-radius: var(--radius-md);
+            font-size: var(--font-size-base);
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition-fast);
+            color: var(--color-text-primary);
+        }
+
+        .nav-tab:hover,
+        .nav-tab:focus {
+            background: var(--color-bg-secondary);
+        }
+
+        .nav-tab.active,
+        .nav-tab[aria-selected="true"] {
+            background: var(--color-primary);
+            color: var(--color-text-inverse);
+            border-color: var(--color-primary);
+        }
+
+        /* Category Section */
+        .category-section {
+            margin-bottom: var(--space-2xl);
+        }
+
+        .category-header {
+            display: flex;
+            align-items: center;
+            gap: var(--space-md);
+            margin-bottom: var(--space-md);
+            padding: var(--space-sm) var(--space-md);
+            border-radius: var(--radius-md);
+            border-left: 4px solid var(--category-color, var(--color-primary));
+        }
+
+        .category-title {
+            font-size: var(--font-size-xl);
+            font-weight: 700;
+            color: var(--color-text-primary);
+        }
+
+        .category-icon {
+            width: 32px;
+            height: 32px;
+        }
+
+        /* =================================================================
+           PHRASE GRID
+           ================================================================= */
+        .phrase-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: var(--grid-gap);
+        }
+
+        @media (min-width: 768px) {
+            .phrase-grid {
+                grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            }
+        }
+
+        @media (min-width: 1024px) {
+            .phrase-grid {
+                grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            }
+        }
+
+        /* Phrase Button */
+        .phrase-btn {
+            min-height: 100px;
+            padding: var(--space-md);
+            background: var(--color-bg-card);
+            border: 3px solid var(--phrase-color, var(--color-primary));
+            border-radius: var(--radius-lg);
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: var(--space-sm);
+            transition: var(--transition-fast);
+            text-align: center;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .phrase-btn:hover,
+        .phrase-btn:focus {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+            background: var(--phrase-color, var(--color-primary));
+            color: var(--color-text-inverse);
+        }
+
+        .phrase-btn:active {
+            transform: translateY(0);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .phrase-btn.selected {
+            background: var(--phrase-color, var(--color-primary));
+            color: var(--color-text-inverse);
+        }
+
+        .phrase-icon {
+            width: 40px;
+            height: 40px;
+            object-fit: contain;
+        }
+
+        .phrase-label {
+            font-size: var(--font-size-base);
+            font-weight: 600;
+            word-break: break-word;
+        }
+
+        /* Category Folder Button */
+        .category-btn {
+            min-height: 120px;
+            padding: var(--space-lg);
+            background: var(--category-color, var(--color-primary));
+            color: var(--color-text-inverse);
+            border: none;
+            border-radius: var(--radius-xl);
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: var(--space-sm);
+            transition: var(--transition-fast);
+            text-align: center;
+            box-shadow: var(--shadow-md);
+        }
+
+        .category-btn:hover,
+        .category-btn:focus {
+            transform: translateY(-3px);
+            box-shadow: var(--shadow-lg);
+            filter: brightness(1.1);
+        }
+
+        .category-btn:active {
+            transform: translateY(0);
+        }
+
+        .category-btn .category-icon {
+            width: 48px;
+            height: 48px;
+            filter: brightness(0) invert(1);
+        }
+
+        .category-btn .category-name {
+            font-size: var(--font-size-lg);
+            font-weight: 700;
+        }
+
+        /* =================================================================
+           QUICK ACCESS SECTION
+           ================================================================= */
+        .quick-access-section {
+            background: var(--color-bg-secondary);
+            padding: var(--space-lg);
+            border-radius: var(--radius-lg);
+            margin-bottom: var(--space-xl);
+        }
+
+        .quick-access-title {
+            font-size: var(--font-size-lg);
+            font-weight: 700;
+            margin-bottom: var(--space-md);
+            color: var(--color-text-primary);
+        }
+
+        /* =================================================================
+           SETTINGS PANEL
+           ================================================================= */
+        .settings-toggle {
+            position: fixed;
+            bottom: var(--space-lg);
+            right: var(--space-lg);
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: var(--color-secondary);
+            color: var(--color-text-inverse);
+            border: none;
+            cursor: pointer;
+            box-shadow: var(--shadow-lg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            z-index: 50;
+        }
+
+        .settings-panel {
+            position: fixed;
+            bottom: 80px;
+            right: var(--space-lg);
+            background: var(--color-bg-card);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-lg);
+            padding: var(--space-lg);
+            width: 300px;
+            max-height: 400px;
+            overflow-y: auto;
+            z-index: 50;
+            display: none;
+        }
+
+        .settings-panel.open {
+            display: block;
+        }
+
+        .settings-panel h3 {
+            margin-bottom: var(--space-md);
+            font-size: var(--font-size-lg);
+        }
+
+        .setting-group {
+            margin-bottom: var(--space-md);
+        }
+
+        .setting-group label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: var(--space-xs);
+        }
+
+        .setting-group input[type="range"] {
+            width: 100%;
+            min-height: var(--touch-target-min);
+        }
+
+        .setting-group select {
+            width: 100%;
+            padding: var(--space-sm);
+            font-size: var(--font-size-base);
+            border-radius: var(--radius-sm);
+            min-height: var(--touch-target-min);
+        }
+
+        /* =================================================================
+           LOADING & STATUS
+           ================================================================= */
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: var(--space-2xl);
+            color: var(--color-text-secondary);
+        }
+
+        .loading::after {
+            content: '';
+            width: 32px;
+            height: 32px;
+            border: 3px solid var(--color-bg-secondary);
+            border-top-color: var(--color-primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: var(--space-md);
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .error-message {
+            background: #fed7d7;
+            color: var(--color-danger);
+            padding: var(--space-md);
+            border-radius: var(--radius-md);
+            margin-bottom: var(--space-md);
+        }
+
+        /* =================================================================
+           SCREEN READER ONLY
+           ================================================================= */
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+
+        /* =================================================================
+           LIVE REGION FOR ANNOUNCEMENTS
+           ================================================================= */
+        .live-region {
+            position: absolute;
+            left: -10000px;
+            width: 1px;
+            height: 1px;
+            overflow: hidden;
+        }
+
+        /* =================================================================
+           RESPONSIVE ADJUSTMENTS
+           ================================================================= */
+        @media (max-width: 480px) {
+            .app-header {
+                padding: var(--space-sm) var(--space-md);
+            }
+
+            .app-main {
+                padding: var(--space-md);
+            }
+
+            .sentence-bar {
+                min-height: 60px;
+                padding: var(--space-sm);
+            }
+
+            .control-btn {
+                padding: var(--space-sm) var(--space-md);
+                font-size: var(--font-size-base);
+            }
+
+            .phrase-grid {
+                grid-template-columns: repeat(3, 1fr);
+                gap: var(--space-sm);
+            }
+
+            .phrase-btn {
+                min-height: 80px;
+                padding: var(--space-sm);
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Skip Navigation Link -->
+    <a href="#main-content" class="skip-link">Skip to main content</a>
+
+    <!-- Live Region for Screen Reader Announcements -->
+    <div id="live-region" class="live-region" aria-live="polite" aria-atomic="true"></div>
+
+    <!-- Header with Sentence Bar -->
+    <header class="app-header" role="banner">
+        <div class="header-content">
+            <h1 class="app-title">AAC Assist</h1>
+
+            <!-- Sentence Builder Bar -->
+            <div
+                id="sentence-bar"
+                class="sentence-bar"
+                role="region"
+                aria-label="Sentence builder - tap words to remove them"
+                aria-live="polite"
+            ></div>
+
+            <!-- Control Buttons -->
+            <div class="sentence-controls" role="group" aria-label="Sentence controls">
+                <button
+                    type="button"
+                    id="btn-speak"
+                    class="control-btn btn-speak"
+                    aria-label="Speak the sentence"
+                    disabled
+                >
+                    <span aria-hidden="true">&#128266;</span>
+                    Speak
+                </button>
+
+                <button
+                    type="button"
+                    id="btn-backspace"
+                    class="control-btn btn-backspace"
+                    aria-label="Remove last word"
+                    disabled
+                >
+                    <span aria-hidden="true">&#9003;</span>
+                    Back
+                </button>
+
+                <button
+                    type="button"
+                    id="btn-clear"
+                    class="control-btn btn-clear"
+                    aria-label="Clear all words"
+                    disabled
+                >
+                    <span aria-hidden="true">&#10006;</span>
+                    Clear
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main id="main-content" class="app-main" role="main">
+        <!-- Search -->
+        <div class="search-container">
+            <label for="search-input" class="sr-only">Search phrases</label>
+            <input
+                type="search"
+                id="search-input"
+                class="search-input"
+                placeholder="Search phrases..."
+                aria-label="Search for phrases"
+            >
+        </div>
+
+        <!-- Quick Access Section -->
+        <section id="quick-access-section" class="quick-access-section" aria-labelledby="quick-access-title">
+            <h2 id="quick-access-title" class="quick-access-title">Quick Access</h2>
+            <div id="quick-access-grid" class="phrase-grid" role="grid" aria-label="Frequently used phrases">
+                <!-- Populated by JavaScript -->
+            </div>
+        </section>
+
+        <!-- Category Navigation -->
+        <nav id="category-nav" role="navigation" aria-label="Category navigation">
+            <div class="nav-tabs" role="tablist" aria-label="Phrase categories">
+                <!-- Populated by JavaScript -->
+            </div>
+        </nav>
+
+        <!-- Phrase Content Area -->
+        <div id="phrase-content" role="region" aria-label="Available phrases">
+            <div class="loading" id="loading-indicator">Loading phrases...</div>
+        </div>
+    </main>
+
+    <!-- Settings Toggle -->
+    <button
+        type="button"
+        id="settings-toggle"
+        class="settings-toggle"
+        aria-label="Open settings"
+        aria-expanded="false"
+        aria-controls="settings-panel"
+    >
+        <span aria-hidden="true">&#9881;</span>
+    </button>
+
+    <!-- Settings Panel -->
+    <aside id="settings-panel" class="settings-panel" role="dialog" aria-labelledby="settings-title" aria-hidden="true">
+        <h3 id="settings-title">Settings</h3>
+
+        <div class="setting-group">
+            <label for="voice-select">Voice</label>
+            <select id="voice-select" aria-describedby="voice-desc">
+                <option value="">Default Voice</option>
+            </select>
+            <span id="voice-desc" class="sr-only">Select the voice for speech synthesis</span>
+        </div>
+
+        <div class="setting-group">
+            <label for="rate-slider">Speech Rate: <span id="rate-value">1.0</span></label>
+            <input
+                type="range"
+                id="rate-slider"
+                min="0.5"
+                max="2"
+                step="0.1"
+                value="1"
+                aria-valuemin="0.5"
+                aria-valuemax="2"
+                aria-valuenow="1"
+            >
+        </div>
+
+        <div class="setting-group">
+            <label for="pitch-slider">Pitch: <span id="pitch-value">1.0</span></label>
+            <input
+                type="range"
+                id="pitch-slider"
+                min="0.5"
+                max="2"
+                step="0.1"
+                value="1"
+                aria-valuemin="0.5"
+                aria-valuemax="2"
+                aria-valuenow="1"
+            >
+        </div>
+
+        <div class="setting-group">
+            <label>
+                <input type="checkbox" id="high-contrast-toggle">
+                High Contrast Mode
+            </label>
+        </div>
+    </aside>
+
+    <script>
+        /**
+         * AAC Assist - Main Application Script
+         * Augmentative and Alternative Communication Interface
+         */
+
+        (function() {
+            'use strict';
+
+            // =================================================================
+            // Configuration
+            // =================================================================
+            const CONFIG = {
+                API_URL: 'api.php',
+                USER_ID: 1, // Demo user
+                DEBOUNCE_DELAY: 300,
+                STORAGE_KEY: 'aac_assist_settings'
+            };
+
+            // =================================================================
+            // State Management
+            // =================================================================
+            const state = {
+                categories: [],
+                phrases: [],
+                sentence: [],
+                currentCategory: null,
+                settings: {
+                    voice: '',
+                    rate: 1.0,
+                    pitch: 1.0,
+                    highContrast: false
+                },
+                isSpeaking: false
+            };
+
+            // =================================================================
+            // DOM Elements
+            // =================================================================
+            const elements = {
+                sentenceBar: document.getElementById('sentence-bar'),
+                btnSpeak: document.getElementById('btn-speak'),
+                btnBackspace: document.getElementById('btn-backspace'),
+                btnClear: document.getElementById('btn-clear'),
+                searchInput: document.getElementById('search-input'),
+                quickAccessGrid: document.getElementById('quick-access-grid'),
+                categoryNav: document.getElementById('category-nav'),
+                phraseContent: document.getElementById('phrase-content'),
+                loadingIndicator: document.getElementById('loading-indicator'),
+                settingsToggle: document.getElementById('settings-toggle'),
+                settingsPanel: document.getElementById('settings-panel'),
+                voiceSelect: document.getElementById('voice-select'),
+                rateSlider: document.getElementById('rate-slider'),
+                rateValue: document.getElementById('rate-value'),
+                pitchSlider: document.getElementById('pitch-slider'),
+                pitchValue: document.getElementById('pitch-value'),
+                highContrastToggle: document.getElementById('high-contrast-toggle'),
+                liveRegion: document.getElementById('live-region')
+            };
+
+            // =================================================================
+            // Speech Synthesis
+            // =================================================================
+            const speech = {
+                synth: window.speechSynthesis,
+                voices: [],
+
+                init() {
+                    if (!this.synth) {
+                        console.warn('Speech synthesis not supported');
+                        return;
+                    }
+
+                    // Load voices
+                    this.loadVoices();
+
+                    // Voices may load asynchronously
+                    if (this.synth.onvoiceschanged !== undefined) {
+                        this.synth.onvoiceschanged = () => this.loadVoices();
+                    }
+                },
+
+                loadVoices() {
+                    this.voices = this.synth.getVoices();
+                    this.populateVoiceSelect();
+                },
+
+                populateVoiceSelect() {
+                    const select = elements.voiceSelect;
+                    select.innerHTML = '<option value="">Default Voice</option>';
+
+                    this.voices.forEach((voice, index) => {
+                        const option = document.createElement('option');
+                        option.value = index;
+                        option.textContent = `${voice.name} (${voice.lang})`;
+                        if (voice.default) {
+                            option.textContent += ' - Default';
+                        }
+                        select.appendChild(option);
+                    });
+
+                    // Restore saved voice
+                    if (state.settings.voice) {
+                        select.value = state.settings.voice;
+                    }
+                },
+
+                speak(text) {
+                    if (!this.synth || !text.trim()) return;
+
+                    // Cancel any ongoing speech
+                    this.synth.cancel();
+
+                    const utterance = new SpeechSynthesisUtterance(text);
+
+                    // Apply settings
+                    utterance.rate = state.settings.rate;
+                    utterance.pitch = state.settings.pitch;
+
+                    // Set voice if selected
+                    if (state.settings.voice && this.voices[state.settings.voice]) {
+                        utterance.voice = this.voices[state.settings.voice];
+                    }
+
+                    // Event handlers
+                    utterance.onstart = () => {
+                        state.isSpeaking = true;
+                        elements.btnSpeak.classList.add('speaking');
+                        elements.btnSpeak.setAttribute('aria-busy', 'true');
+                    };
+
+                    utterance.onend = () => {
+                        state.isSpeaking = false;
+                        elements.btnSpeak.classList.remove('speaking');
+                        elements.btnSpeak.setAttribute('aria-busy', 'false');
+                    };
+
+                    utterance.onerror = (event) => {
+                        console.error('Speech error:', event.error);
+                        state.isSpeaking = false;
+                        elements.btnSpeak.classList.remove('speaking');
+                    };
+
+                    this.synth.speak(utterance);
+                },
+
+                stop() {
+                    if (this.synth) {
+                        this.synth.cancel();
+                    }
+                }
+            };
+
+            // =================================================================
+            // API Functions
+            // =================================================================
+            const api = {
+                async fetch(endpoint, params = {}) {
+                    const url = new URL(CONFIG.API_URL, window.location.origin);
+                    url.searchParams.append('action', endpoint);
+
+                    Object.entries(params).forEach(([key, value]) => {
+                        url.searchParams.append(key, value);
+                    });
+
+                    try {
+                        const response = await fetch(url);
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                        }
+                        return await response.json();
+                    } catch (error) {
+                        console.error('API Error:', error);
+                        throw error;
+                    }
+                },
+
+                async getCategories() {
+                    const data = await this.fetch('categories');
+                    return data.categories || [];
+                },
+
+                async getPhrases(categoryId = null) {
+                    const params = categoryId ? { category: categoryId } : {};
+                    const data = await this.fetch('phrases', params);
+                    return data.phrases || [];
+                },
+
+                async searchPhrases(query) {
+                    const data = await this.fetch('search', { q: query });
+                    return data.phrases || [];
+                },
+
+                async getQuickAccess() {
+                    const data = await this.fetch('quick_access', { user: CONFIG.USER_ID });
+                    return data.quick_access || [];
+                },
+
+                async trackUsage(phraseId) {
+                    try {
+                        await fetch(CONFIG.API_URL + '?action=track_usage', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                user_id: CONFIG.USER_ID,
+                                phrase_id: phraseId
+                            })
+                        });
+                    } catch (error) {
+                        console.warn('Failed to track usage:', error);
+                    }
+                }
+            };
+
+            // =================================================================
+            // UI Functions
+            // =================================================================
+            const ui = {
+                announce(message) {
+                    elements.liveRegion.textContent = message;
+                    setTimeout(() => {
+                        elements.liveRegion.textContent = '';
+                    }, 1000);
+                },
+
+                updateSentenceBar() {
+                    const bar = elements.sentenceBar;
+                    bar.innerHTML = '';
+
+                    state.sentence.forEach((item, index) => {
+                        const word = document.createElement('button');
+                        word.type = 'button';
+                        word.className = 'sentence-word';
+                        word.textContent = item.label;
+                        word.setAttribute('aria-label', `Remove ${item.label} from sentence`);
+                        word.dataset.index = index;
+
+                        word.addEventListener('click', () => {
+                            this.removeFromSentence(index);
+                        });
+
+                        bar.appendChild(word);
+                    });
+
+                    // Update control button states
+                    const hasWords = state.sentence.length > 0;
+                    elements.btnSpeak.disabled = !hasWords;
+                    elements.btnBackspace.disabled = !hasWords;
+                    elements.btnClear.disabled = !hasWords;
+                },
+
+                addToSentence(phrase) {
+                    state.sentence.push({
+                        id: phrase.id,
+                        label: phrase.text_label,
+                        speech: phrase.speech_output
+                    });
+
+                    this.updateSentenceBar();
+                    this.announce(`Added ${phrase.text_label} to sentence`);
+
+                    // Track usage
+                    api.trackUsage(phrase.id);
+                },
+
+                removeFromSentence(index) {
+                    const removed = state.sentence.splice(index, 1)[0];
+                    this.updateSentenceBar();
+                    this.announce(`Removed ${removed.label} from sentence`);
+                },
+
+                clearSentence() {
+                    state.sentence = [];
+                    this.updateSentenceBar();
+                    this.announce('Sentence cleared');
+                },
+
+                removeLastWord() {
+                    if (state.sentence.length > 0) {
+                        const removed = state.sentence.pop();
+                        this.updateSentenceBar();
+                        this.announce(`Removed ${removed.label}`);
+                    }
+                },
+
+                speakSentence() {
+                    if (state.sentence.length === 0) return;
+
+                    const text = state.sentence.map(item => item.speech).join(' ');
+                    speech.speak(text);
+                    this.announce('Speaking: ' + text);
+                },
+
+                renderCategories() {
+                    const nav = elements.categoryNav.querySelector('.nav-tabs');
+                    nav.innerHTML = '';
+
+                    // Add "All" tab
+                    const allTab = document.createElement('button');
+                    allTab.type = 'button';
+                    allTab.className = 'nav-tab active';
+                    allTab.textContent = 'All Categories';
+                    allTab.setAttribute('role', 'tab');
+                    allTab.setAttribute('aria-selected', 'true');
+                    allTab.dataset.category = '';
+
+                    allTab.addEventListener('click', () => this.selectCategory(null));
+                    nav.appendChild(allTab);
+
+                    // Add category tabs
+                    state.categories.forEach(category => {
+                        const tab = document.createElement('button');
+                        tab.type = 'button';
+                        tab.className = 'nav-tab';
+                        tab.textContent = category.name;
+                        tab.style.setProperty('--category-color', category.color_code);
+                        tab.setAttribute('role', 'tab');
+                        tab.setAttribute('aria-selected', 'false');
+                        tab.dataset.category = category.id;
+
+                        tab.addEventListener('click', () => this.selectCategory(category));
+                        nav.appendChild(tab);
+                    });
+                },
+
+                selectCategory(category) {
+                    state.currentCategory = category;
+
+                    // Update tab states
+                    const tabs = elements.categoryNav.querySelectorAll('.nav-tab');
+                    tabs.forEach(tab => {
+                        const isSelected = category
+                            ? tab.dataset.category === String(category.id)
+                            : tab.dataset.category === '';
+
+                        tab.classList.toggle('active', isSelected);
+                        tab.setAttribute('aria-selected', isSelected ? 'true' : 'false');
+                    });
+
+                    // Render phrases
+                    this.renderPhrases();
+                    this.announce(category ? `Showing ${category.name} phrases` : 'Showing all categories');
+                },
+
+                renderPhrases() {
+                    const content = elements.phraseContent;
+
+                    if (state.currentCategory) {
+                        // Show phrases for selected category
+                        const phrases = state.phrases.filter(p =>
+                            String(p.category_id) === String(state.currentCategory.id)
+                        );
+
+                        content.innerHTML = `
+                            <section class="category-section" aria-label="${state.currentCategory.name} phrases">
+                                <div class="category-header" style="--category-color: ${state.currentCategory.color_code}">
+                                    <h2 class="category-title">${state.currentCategory.name}</h2>
+                                </div>
+                                <div class="phrase-grid" role="grid">
+                                    ${phrases.map(phrase => this.createPhraseButton(phrase)).join('')}
+                                </div>
+                            </section>
+                        `;
+                    } else {
+                        // Show all categories as folders
+                        content.innerHTML = `
+                            <div class="phrase-grid" role="grid" aria-label="Select a category">
+                                ${state.categories.map(cat => this.createCategoryButton(cat)).join('')}
+                            </div>
+                        `;
+                    }
+
+                    // Attach event listeners
+                    this.attachPhraseListeners();
+                    this.attachCategoryListeners();
+                },
+
+                createPhraseButton(phrase) {
+                    const color = phrase.color_code || '#4A90D9';
+                    return `
+                        <button
+                            type="button"
+                            class="phrase-btn"
+                            style="--phrase-color: ${color}"
+                            data-phrase-id="${phrase.id}"
+                            data-label="${this.escapeHtml(phrase.text_label)}"
+                            data-speech="${this.escapeHtml(phrase.speech_output)}"
+                            aria-label="Add ${phrase.text_label} to sentence"
+                        >
+                            ${phrase.icon_url ? `<img src="${phrase.icon_url}" alt="" class="phrase-icon" aria-hidden="true">` : ''}
+                            <span class="phrase-label">${this.escapeHtml(phrase.text_label)}</span>
+                        </button>
+                    `;
+                },
+
+                createCategoryButton(category) {
+                    return `
+                        <button
+                            type="button"
+                            class="category-btn"
+                            style="--category-color: ${category.color_code}"
+                            data-category-id="${category.id}"
+                            aria-label="Open ${category.name} category"
+                        >
+                            ${category.icon_url ? `<img src="${category.icon_url}" alt="" class="category-icon" aria-hidden="true">` : ''}
+                            <span class="category-name">${this.escapeHtml(category.name)}</span>
+                        </button>
+                    `;
+                },
+
+                attachPhraseListeners() {
+                    elements.phraseContent.querySelectorAll('.phrase-btn').forEach(btn => {
+                        btn.addEventListener('click', () => {
+                            const phrase = {
+                                id: btn.dataset.phraseId,
+                                text_label: btn.dataset.label,
+                                speech_output: btn.dataset.speech
+                            };
+                            this.addToSentence(phrase);
+                        });
+                    });
+                },
+
+                attachCategoryListeners() {
+                    elements.phraseContent.querySelectorAll('.category-btn').forEach(btn => {
+                        btn.addEventListener('click', () => {
+                            const categoryId = btn.dataset.categoryId;
+                            const category = state.categories.find(c => String(c.id) === categoryId);
+                            if (category) {
+                                this.selectCategory(category);
+                            }
+                        });
+                    });
+                },
+
+                renderQuickAccess(phrases) {
+                    const grid = elements.quickAccessGrid;
+
+                    if (phrases.length === 0) {
+                        grid.innerHTML = '<p>No quick access phrases yet. Start using phrases to build your list!</p>';
+                        return;
+                    }
+
+                    grid.innerHTML = phrases.map(phrase => this.createPhraseButton(phrase)).join('');
+
+                    // Attach listeners
+                    grid.querySelectorAll('.phrase-btn').forEach(btn => {
+                        btn.addEventListener('click', () => {
+                            const phrase = {
+                                id: btn.dataset.phraseId,
+                                text_label: btn.dataset.label,
+                                speech_output: btn.dataset.speech
+                            };
+                            this.addToSentence(phrase);
+                        });
+                    });
+                },
+
+                renderSearchResults(phrases) {
+                    const content = elements.phraseContent;
+
+                    if (phrases.length === 0) {
+                        content.innerHTML = '<p class="loading">No phrases found matching your search.</p>';
+                        return;
+                    }
+
+                    content.innerHTML = `
+                        <section class="category-section" aria-label="Search results">
+                            <div class="category-header">
+                                <h2 class="category-title">Search Results (${phrases.length})</h2>
+                            </div>
+                            <div class="phrase-grid" role="grid">
+                                ${phrases.map(phrase => this.createPhraseButton(phrase)).join('')}
+                            </div>
+                        </section>
+                    `;
+
+                    this.attachPhraseListeners();
+                },
+
+                showLoading(show) {
+                    elements.loadingIndicator.style.display = show ? 'flex' : 'none';
+                },
+
+                showError(message) {
+                    elements.phraseContent.innerHTML = `
+                        <div class="error-message" role="alert">
+                            <strong>Error:</strong> ${this.escapeHtml(message)}
+                        </div>
+                    `;
+                },
+
+                escapeHtml(text) {
+                    const div = document.createElement('div');
+                    div.textContent = text;
+                    return div.innerHTML;
+                }
+            };
+
+            // =================================================================
+            // Settings Management
+            // =================================================================
+            const settings = {
+                load() {
+                    try {
+                        const saved = localStorage.getItem(CONFIG.STORAGE_KEY);
+                        if (saved) {
+                            state.settings = { ...state.settings, ...JSON.parse(saved) };
+                        }
+                    } catch (error) {
+                        console.warn('Failed to load settings:', error);
+                    }
+
+                    this.apply();
+                },
+
+                save() {
+                    try {
+                        localStorage.setItem(CONFIG.STORAGE_KEY, JSON.stringify(state.settings));
+                    } catch (error) {
+                        console.warn('Failed to save settings:', error);
+                    }
+                },
+
+                apply() {
+                    // Apply voice
+                    elements.voiceSelect.value = state.settings.voice;
+
+                    // Apply rate
+                    elements.rateSlider.value = state.settings.rate;
+                    elements.rateValue.textContent = state.settings.rate.toFixed(1);
+
+                    // Apply pitch
+                    elements.pitchSlider.value = state.settings.pitch;
+                    elements.pitchValue.textContent = state.settings.pitch.toFixed(1);
+
+                    // Apply high contrast
+                    elements.highContrastToggle.checked = state.settings.highContrast;
+                    document.body.classList.toggle('high-contrast', state.settings.highContrast);
+                }
+            };
+
+            // =================================================================
+            // Event Handlers
+            // =================================================================
+            function setupEventListeners() {
+                // Speak button
+                elements.btnSpeak.addEventListener('click', () => {
+                    if (state.isSpeaking) {
+                        speech.stop();
+                    } else {
+                        ui.speakSentence();
+                    }
+                });
+
+                // Backspace button
+                elements.btnBackspace.addEventListener('click', () => {
+                    ui.removeLastWord();
+                });
+
+                // Clear button
+                elements.btnClear.addEventListener('click', () => {
+                    ui.clearSentence();
+                });
+
+                // Search input with debounce
+                let searchTimeout;
+                elements.searchInput.addEventListener('input', (e) => {
+                    clearTimeout(searchTimeout);
+                    const query = e.target.value.trim();
+
+                    if (query.length === 0) {
+                        ui.renderPhrases();
+                        return;
+                    }
+
+                    searchTimeout = setTimeout(async () => {
+                        if (query.length >= 2) {
+                            try {
+                                const results = await api.searchPhrases(query);
+                                ui.renderSearchResults(results);
+                            } catch (error) {
+                                ui.showError('Search failed. Please try again.');
+                            }
+                        }
+                    }, CONFIG.DEBOUNCE_DELAY);
+                });
+
+                // Settings toggle
+                elements.settingsToggle.addEventListener('click', () => {
+                    const isOpen = elements.settingsPanel.classList.toggle('open');
+                    elements.settingsToggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+                    elements.settingsPanel.setAttribute('aria-hidden', isOpen ? 'false' : 'true');
+                });
+
+                // Voice selection
+                elements.voiceSelect.addEventListener('change', (e) => {
+                    state.settings.voice = e.target.value;
+                    settings.save();
+                });
+
+                // Rate slider
+                elements.rateSlider.addEventListener('input', (e) => {
+                    state.settings.rate = parseFloat(e.target.value);
+                    elements.rateValue.textContent = state.settings.rate.toFixed(1);
+                    settings.save();
+                });
+
+                // Pitch slider
+                elements.pitchSlider.addEventListener('input', (e) => {
+                    state.settings.pitch = parseFloat(e.target.value);
+                    elements.pitchValue.textContent = state.settings.pitch.toFixed(1);
+                    settings.save();
+                });
+
+                // High contrast toggle
+                elements.highContrastToggle.addEventListener('change', (e) => {
+                    state.settings.highContrast = e.target.checked;
+                    document.body.classList.toggle('high-contrast', e.target.checked);
+                    settings.save();
+                });
+
+                // Keyboard navigation
+                document.addEventListener('keydown', (e) => {
+                    // Escape to close settings
+                    if (e.key === 'Escape' && elements.settingsPanel.classList.contains('open')) {
+                        elements.settingsPanel.classList.remove('open');
+                        elements.settingsToggle.setAttribute('aria-expanded', 'false');
+                        elements.settingsToggle.focus();
+                    }
+
+                    // Space/Enter on speak button
+                    if ((e.key === ' ' || e.key === 'Enter') && document.activeElement === elements.btnSpeak) {
+                        e.preventDefault();
+                        elements.btnSpeak.click();
+                    }
+                });
+            }
+
+            // =================================================================
+            // Initialization
+            // =================================================================
+            async function init() {
+                try {
+                    // Initialize speech synthesis
+                    speech.init();
+
+                    // Load saved settings
+                    settings.load();
+
+                    // Setup event listeners
+                    setupEventListeners();
+
+                    // Load data from API
+                    ui.showLoading(true);
+
+                    const [categories, phrases, quickAccess] = await Promise.all([
+                        api.getCategories(),
+                        api.getPhrases(),
+                        api.getQuickAccess()
+                    ]);
+
+                    state.categories = categories;
+                    state.phrases = phrases;
+
+                    // Render UI
+                    ui.renderCategories();
+                    ui.renderPhrases();
+                    ui.renderQuickAccess(quickAccess);
+
+                    ui.showLoading(false);
+                    ui.announce('AAC Assist loaded. Select phrases to build sentences.');
+
+                } catch (error) {
+                    console.error('Initialization error:', error);
+                    ui.showLoading(false);
+                    ui.showError('Failed to load application data. Please refresh the page.');
+                }
+            }
+
+            // Start the application
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', init);
+            } else {
+                init();
+            }
+        })();
+    </script>
+</body>
+</html>
